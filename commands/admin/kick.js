@@ -1,13 +1,20 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
-  name: 'kick',
-  description: 'Kick a user from the server',
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionsBitField.Flags.KickMembers)) return message.reply('You do not have permission to use this command.');
+  data: new SlashCommandBuilder()
+    .setName('kick')
+    .setDescription('Kick a user from the server')
+    .addUserOption(option =>
+      option.setName('target')
+        .setDescription('The user to kick')
+        .setRequired(true)),
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
+      return interaction.reply('You do not have permission to use this command.');
+    }
 
-    const member = message.mentions.members.first();
-    if (!member) return message.reply('You need to mention a user to kick.');
+    const member = interaction.options.getMember('target');
+    if (!member) return interaction.reply('You need to mention a user to kick.');
 
     const row = new ActionRowBuilder()
       .addComponents(
@@ -21,26 +28,26 @@ module.exports = {
           .setStyle(ButtonStyle.Secondary),
       );
 
-    const kickMessage = await message.channel.send({
+    await interaction.reply({
       content: `Are you sure you want to kick ${member.user.tag}?`,
       components: [row],
     });
 
-    const filter = (interaction) => interaction.user.id === message.author.id;
-    const collector = kickMessage.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
+    const filter = i => i.user.id === interaction.user.id;
+    const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
 
-    collector.on('collect', async (interaction) => {
-      if (interaction.customId === 'confirm-kick') {
+    collector.on('collect', async i => {
+      if (i.customId === 'confirm-kick') {
         await member.kick();
-        await interaction.update({ content: `${member.user.tag} has been kicked.`, components: [] });
+        await i.update({ content: `${member.user.tag} has been kicked.`, components: [] });
       } else {
-        await interaction.update({ content: 'Kick action cancelled.', components: [] });
+        await i.update({ content: 'Kick action cancelled.', components: [] });
       }
     });
 
-    collector.on('end', (collected) => {
+    collector.on('end', collected => {
       if (collected.size === 0) {
-        kickMessage.edit({ content: 'Kick action timed out.', components: [] });
+        interaction.editReply({ content: 'Kick action timed out.', components: [] });
       }
     });
   }
