@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 
@@ -7,10 +7,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMembers
-  ],
-  partials: [Partials.Message, Partials.Channel, Partials.Reaction]
+  ]
 });
 
 client.commands = new Collection();
@@ -20,7 +18,7 @@ for (const folder of commandFolders) {
   const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
   for (const file of commandFiles) {
     const command = require(`./commands/${folder}/${file}`);
-    client.commands.set(command.name, command);
+    client.commands.set(command.data.name, command);
   }
 }
 
