@@ -1,26 +1,22 @@
-const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder } = require('@discordjs/builders');
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('unban')
-    .setDescription('Unban a user from the server')
-    .addStringOption(option =>
-      option.setName('userid')
-        .setDescription('The ID of the user to unban')
-        .setRequired(true)),
-  async execute(interaction) {
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) return interaction.reply('You do not have permission to use this command.');
+    data: new SlashCommandBuilder()
+        .setName('unban')
+        .setDescription('Unban a user.')
+        .addUserOption(option => option.setName('target').setDescription('The user to unban').setRequired(true)),
+    async execute(interaction) {
+        const target = interaction.options.getUser('target');
 
-    const userId = interaction.options.getString('userid');
-    if (!userId) return interaction.reply('You need to provide the ID of the user to unban.');
-
-    try {
-      await interaction.guild.members.unban(userId);
-      interaction.reply(`User with ID ${userId} has been unbanned.`);
-    } catch (error) {
-      console.error(error);
-      interaction.reply('I was unable to unban the member. Please make sure the ID is correct.');
+        if (interaction.member.roles.cache.some(role => role.name === 'Admin')) {
+            try {
+                await interaction.guild.bans.remove(target.id);
+                await interaction.reply(`${target.username} was unbanned.`);
+            } catch (error) {
+                await interaction.reply('An error occurred while trying to unban the user.');
+            }
+        } else {
+            await interaction.reply("You don't have the necessary permissions to use this command.");
+        }
     }
-  }
 };
-
